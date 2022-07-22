@@ -14,7 +14,7 @@ port_count = {}
 
 # Print Welcome banner
 print("-" * 60)
-print("TrustFoundry Nmap Parser".center(60, " "))
+print("Simple Nmap Parser".center(60, " "))
 print("Version 1.0".center(60, " "))
 print("Author: Tom Fieber, Security Consultant".center(60, " "))
 print("-" * 60)        
