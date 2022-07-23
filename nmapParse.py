@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+
+# Installation requirements: python-libnmap, argparse, termcolor
+# Install instructions: pip3 install python-libnmap, argparse, termcolor
+
+# Usage: pyhton3 nmapParse.py -f <XML file to parse>
+
 import argparse
 from libnmap.parser import NmapParser
 from termcolor import colored
