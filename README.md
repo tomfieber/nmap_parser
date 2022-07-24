@@ -29,7 +29,7 @@ python3 nmapParse.py -f <FILE TO PARSE>
 
 # TODO
 There's still A LOT to do with this
-- [ ] Implement type checking to return an error if someone tries to parse a non XML file. 
-- [ ] Implement more options ot only print selected sections
-- [ ] Show all port details in a useable way
+- [X] Implement type checking to return an error if someone tries to parse a non XML file. Ehh...sort of. There's probably a better way to do this. 
+- [X] ~~Implement more options ot only print selected sections~~ Done for now.
+- [X] ~~Show all port details in a useable way~~ Sort of done. There are a few bugs left to work out...mostly relating to how Nmap service objects are structured. 
 - [ ] Eventually build in a threaded port scanner with nmap integration to avoid having to load a separate XML file. 
