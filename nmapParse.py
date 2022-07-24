@@ -12,10 +12,12 @@ from termcolor import colored
 parser = argparse.ArgumentParser(description='Make constructing the IP table easy')
 parser.add_argument('-f', '--file', dest='file', type=str, required=True, help='The file to parse')
 parser.add_argument('-q', '--quiet', dest='quiet', action='store_true', help='Suppress the welcome banner and headlines')
+parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='Show the ports for every host on every IP even if there are duplicates')
 args = parser.parse_args()
 
 file = args.file
 quiet = args.quiet
+verbose = args.verbose
 
 ips = {}
 listening = {}
@@ -55,12 +57,18 @@ def populate_dictionaries():
                 port_count[svcPort] += 1
 
             # Create the list of listening ports
-            if ip not in listening.keys():
-                listening[ip] = [svcDetails]
-            elif ip in listening.keys() and svcDetails not in listening[ip]:
-                listening[ip].append(svcDetails)
+            if not verbose:
+                if ip not in listening.keys():
+                    listening[ip] = [svcDetails]
+                elif ip in listening.keys() and svcDetails not in listening[ip]:
+                    listening[ip].append(svcDetails)
+                else:
+                    continue
             else:
-                continue
+                if ip not in listening.keys():
+                    listening[ip] = [svcDetails]
+                else:
+                    listening[ip].append(svcDetails)
 
 
 def split_banner(b):
