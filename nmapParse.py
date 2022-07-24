@@ -130,9 +130,12 @@ def count_open_ports():
         print(f"{k} : {port_count[k]}")
 
 if __name__ == '__main__':
-    if not quiet:
-        greeting()
-    populate_dictionaries()
-    print_dict()
-    count_open_ports()
+    try:
+        if not quiet:
+            greeting()
+        populate_dictionaries()
+        print_dict()
+        count_open_ports()
+    except:
+        print("Something went wrong. Check your nmap XML file and try again.")
     
