@@ -20,7 +20,6 @@ quiet = args.quiet
 ips = {}
 listening = {}
 port_count = {}
-#port_info = {}
 
 # Print Welcome banner
 def greeting():
