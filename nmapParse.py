@@ -44,20 +44,24 @@ def populate_dictionaries():
 
         # Get a dictionary object of all service details
         for service in host.services:
+
             svcDetails = service.get_dict()
             svcPort = svcDetails['port']
-
-            # Create the list of listening ports
-            if ip not in listening.keys():
-                listening[ip] = [svcDetails]
-            else:
-                listening[ip].append(svcDetails)
 
             # Get a count of all ports across hosts
             if svcPort not in port_count.keys():
                 port_count[svcPort] = 1
             else:
                 port_count[svcPort] += 1
+
+            # Create the list of listening ports
+            if ip not in listening.keys():
+                listening[ip] = [svcDetails]
+            elif ip in listening.keys() and svcDetails not in listening[ip]:
+                listening[ip].append(svcDetails)
+            else:
+                continue
+
 
 def split_banner(b):
     product = ""
@@ -88,23 +92,23 @@ def get_port_details(dict):
     print(protocol, service, product, version)
 
 def get_hostnames(ip):
-    for v in ips[ip]:
-        print(colored(v, "green"))
+    for host in ips[ip]:
+        print(colored(host, "green"))
 
 def print_dict():
     if not quiet:
         print(colored("Use this section to generate tables of".center(60, " "), "grey", "on_yellow"))
         print(colored("ports and services enumerated during testing".center(60, " "), "grey", "on_yellow"))
-    for k in sorted(listening.keys()):
+    for ipaddr in sorted(listening.keys()):
         print()
-        print(colored(f"{k}", "yellow", attrs=['bold']))
+        print(colored(f"{ipaddr}", "yellow", attrs=['bold']))
         print()
         print(colored("---Hostnames---", "magenta"))
-        get_hostnames(k)
+        get_hostnames(ipaddr)
         print()
         print(colored("---Open Ports---", "magenta"))
-        for v in range(len(listening[k])):
-            get_port_details(listening[k][v])
+        for i in range(len(listening[ipaddr])):
+            get_port_details(listening[ipaddr][i])
         print()
 
 def count_open_ports():
