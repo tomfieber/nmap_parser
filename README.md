@@ -1,4 +1,4 @@
-# nmap_parser
+# Nmap XML Parser
 A very simple nmap parser to make the most tedious parts of reporting **LESS** tedious. 
 
 I wrote this to make my own reporting a bit easier, but it's a general purpose nmap parser, so there's no proprietary information here. 
