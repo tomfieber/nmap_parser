@@ -19,9 +19,11 @@ file = args.file
 quiet = args.quiet
 verbose = args.verbose
 
+
 ips = {}
 listening = {}
 port_count = {}
+
 
 # Print Welcome banner
 def greeting():
@@ -29,7 +31,10 @@ def greeting():
     print("Simple Nmap Parser".center(60, " "))
     print("Version 1.0".center(60, " "))
     print("Author: Tom Fieber, Security Consultant".center(60, " "))
-    print("-" * 60)        
+    print("-" * 60)
+
+def check_open(state):
+    return state == "open"        
 
 def populate_dictionaries():
     nmap_parse = NmapParser.parse_fromfile(file)
@@ -49,26 +54,31 @@ def populate_dictionaries():
 
             svcDetails = service.get_dict()
             svcPort = svcDetails['port']
+            svcState = svcDetails['state']
 
-            # Get a count of all ports across hosts
-            if svcPort not in port_count.keys():
-                port_count[svcPort] = 1
-            else:
-                port_count[svcPort] += 1
+            port_is_open = check_open(svcState)
 
-            # Create the list of listening ports
-            if not verbose:
-                if ip not in listening.keys():
-                    listening[ip] = [svcDetails]
-                elif ip in listening.keys() and svcDetails not in listening[ip]:
-                    listening[ip].append(svcDetails)
+            if port_is_open:
+
+                # Get a count of all ports across hosts
+                if svcPort not in port_count.keys():
+                    port_count[svcPort] = 1
                 else:
-                    continue
-            else:
-                if ip not in listening.keys():
-                    listening[ip] = [svcDetails]
+                    port_count[svcPort] += 1
+
+                # Create the list of listening ports
+                if not verbose:
+                    if ip not in listening.keys():
+                        listening[ip] = [svcDetails]
+                    elif ip in listening.keys() and svcDetails not in listening[ip]:
+                        listening[ip].append(svcDetails)
+                    else:
+                        continue
                 else:
-                    listening[ip].append(svcDetails)
+                    if ip not in listening.keys():
+                        listening[ip] = [svcDetails]
+                    else:
+                        listening[ip].append(svcDetails)
 
 
 def split_banner(b):
@@ -96,8 +106,9 @@ def get_port_details(dict):
     service = dict['service']
     banner = dict['banner']
     product, version = split_banner(banner)
-    print(colored(port, 'blue', attrs=['bold']), end=' ')
-    print(protocol, service, product, version)
+    max_len = len(product)
+    print(colored(port.ljust(6), 'blue', attrs=['bold']), end='')
+    print(protocol.ljust(8), service.ljust(12), product.ljust(20), version.ljust(max_len+2))
 
 def get_hostnames(ip):
     for host in ips[ip]:
