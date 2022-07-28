@@ -9,11 +9,16 @@ import argparse
 from libnmap.parser import NmapParser
 from termcolor import colored
 
-parser = argparse.ArgumentParser(description='Make constructing the IP table easy')
-parser.add_argument('-f', '--file', dest='file', type=str, required=True, help='The file to parse')
-parser.add_argument('-q', '--quiet', dest='quiet', action='store_true', help='Suppress the welcome banner and headlines')
-parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='Show the ports for every host on every IP even if there are duplicates')
-parser.add_argument('-p', '--ports', dest='ports', action='store_true', help='Show detailed port information')
+parser = argparse.ArgumentParser(
+    description='Make constructing the IP table easy')
+parser.add_argument('-f', '--file', dest='file', type=str,
+                    required=True, help='The file to parse')
+parser.add_argument('-q', '--quiet', dest='quiet', action='store_true',
+                    help='Suppress the welcome banner and headlines')
+parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
+                    help='List all ports with duplicates')
+parser.add_argument('-p', '--ports', dest='ports',
+                    action='store_true', help='Show detailed port information')
 args = parser.parse_args()
 
 file = args.file
@@ -23,28 +28,22 @@ show_port_details = args.ports
 
 
 ips = {}
-listening = {}
+ports = {}
 port_count = {}
 
 
 # Print Welcome banner
 def greeting():
-    print(" _   _                             _____")                    
-    print("| \ | |                           |  __ \\")                   
-    print("|  \| |_ __ ___   __ _ _ __ ______| |__) |_ _ _ __ ___  ___")
-    print("| . ` | '_ ` _ \ / _` | '_ \______|  ___/ _` | '__/ __|/ _ \\")
-    print("| |\  | | | | | | (_| | |_) |     | |  | (_| | |  \__ \  __/")
-    print("|_| \_|_| |_| |_|\__,_| .__/      |_|   \__,_|_|  |___/\___|")
-    print("                      | |")                                   
-    print("                      |_|")                                   
-                                 
-    print()
-    print("Version 0.1.0")
-    print("@tomfieber")
+    print("-" * 60)
+    print("Simple Nmap-Parser".center(60, " "))
+    print("Version 0.1.0".center(60, " "))
+    print("@tomfieber".center(60, " "))
     print("-" * 60)
 
+
 def check_open(state):
-    return state == "open"        
+    return state == "open"
+
 
 def populate_dictionaries():
     nmap_parse = NmapParser.parse_fromfile(file)
@@ -78,17 +77,18 @@ def populate_dictionaries():
 
                 # Create the list of listening ports
                 if not verbose:
-                    if ip not in listening.keys():
-                        listening[ip] = [svcDetails]
-                    elif ip in listening.keys() and svcDetails not in listening[ip]:
-                        listening[ip].append(svcDetails)
+                    if ip not in ports.keys():
+                        ports[ip] = [svcDetails]
+                    elif ip in ports.keys() and svcDetails not in ports[ip]:
+                        ports[ip].append(svcDetails)
                     else:
                         continue
                 else:
-                    if ip not in listening.keys():
-                        listening[ip] = [svcDetails]
+                    if ip not in ports.keys():
+                        ports[ip] = [svcDetails]
                     else:
-                        listening[ip].append(svcDetails)
+                        ports[ip].append(svcDetails)
+
 
 def split_banner(b):
     banner = b.split()
@@ -105,7 +105,7 @@ def split_banner(b):
             print()
         else:
             print(word, end=" ")
-            
+
 
 def get_port_details(dict):
     port = dict['port']
@@ -118,39 +118,47 @@ def get_port_details(dict):
     if show_port_details:
         try:
             split_banner(banner)
-        except:
+        except IndexError:
             print("Product and version unknown")
             print()
-    
+
+
 def get_hostnames(ip):
     for host in ips[ip]:
         print(colored(host, "green"))
 
+
 def print_dict():
     if not quiet:
-        print(colored("Use this section to generate tables of".center(60, " "), "grey", "on_yellow"))
-        print(colored("ports and services enumerated during testing".center(60, " "), "grey", "on_yellow"))
+        print(colored("Use this section to generate tables of".center(
+            60, " "), "grey", "on_yellow"))
+        print(colored("ports and services enumerated during testing".center(
+            60, " "), "grey", "on_yellow"))
         print()
-    for ipaddr in sorted(listening.keys()):
+    for ipaddr in sorted(ports.keys()):
         print(colored(f"[+] {ipaddr}", "yellow", attrs=['bold']))
         print()
         print(colored("---Hostnames---", "magenta"))
         get_hostnames(ipaddr)
         print()
         print(colored("---Open Ports---", "magenta"))
-        for i in range(len(listening[ipaddr])):
-            get_port_details(listening[ipaddr][i])
+        for i in range(len(ports[ipaddr])):
+            get_port_details(ports[ipaddr][i])
         print()
+
 
 def count_open_ports():
     if not quiet:
-        print(colored("Use this section to generate the distribution".center(60, " "), "grey", "on_yellow"))
-        print(colored("chart of listening ports across all hosts".center(60, " "), "grey", "on_yellow"))
+        print(colored("Use this section to generate the distribution".center(
+            60, " "), "grey", "on_yellow"))
+        print(colored("chart of ports ports across all hosts".center(
+            60, " "), "grey", "on_yellow"))
         print()
     else:
-        print(colored("---Count of all listening ports---", "magenta"))
+        print(colored("---Count of all ports ports---", "magenta"))
     for k in sorted(port_count.keys(), key=int):
         print(f"{k} : {port_count[k]}")
+
 
 if __name__ == '__main__':
     try:
@@ -159,6 +167,5 @@ if __name__ == '__main__':
         populate_dictionaries()
         print_dict()
         count_open_ports()
-    except:
+    except Exception:
         print("Something went wrong. Check your nmap XML file and try again.")
-    
