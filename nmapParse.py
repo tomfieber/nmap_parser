@@ -13,11 +13,13 @@ parser = argparse.ArgumentParser(description='Make constructing the IP table eas
 parser.add_argument('-f', '--file', dest='file', type=str, required=True, help='The file to parse')
 parser.add_argument('-q', '--quiet', dest='quiet', action='store_true', help='Suppress the welcome banner and headlines')
 parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='Show the ports for every host on every IP even if there are duplicates')
+parser.add_argument('-p', '--ports', dest='ports', action='store_true', help='Show detailed port information')
 args = parser.parse_args()
 
 file = args.file
 quiet = args.quiet
 verbose = args.verbose
+show_port_details = args.ports
 
 
 ips = {}
@@ -27,10 +29,18 @@ port_count = {}
 
 # Print Welcome banner
 def greeting():
-    print("-" * 60)
-    print("Simple Nmap Parser".center(60, " "))
-    print("Version 1.0".center(60, " "))
-    print("Author: Tom Fieber, Security Consultant".center(60, " "))
+    print(" _   _                             _____")                    
+    print("| \ | |                           |  __ \\")                   
+    print("|  \| |_ __ ___   __ _ _ __ ______| |__) |_ _ _ __ ___  ___")
+    print("| . ` | '_ ` _ \ / _` | '_ \______|  ___/ _` | '__/ __|/ _ \\")
+    print("| |\  | | | | | | (_| | |_) |     | |  | (_| | |  \__ \  __/")
+    print("|_| \_|_| |_| |_|\__,_| .__/      |_|   \__,_|_|  |___/\___|")
+    print("                      | |")                                   
+    print("                      |_|")                                   
+                                 
+    print()
+    print("Version 0.1.0")
+    print("@tomfieber")
     print("-" * 60)
 
 def check_open(state):
@@ -80,36 +90,38 @@ def populate_dictionaries():
                     else:
                         listening[ip].append(svcDetails)
 
-
 def split_banner(b):
-    product = ""
-    version = ""
-    prodIndex = b.find('product')
-    versionIndex = b.find('version')
-    extraIndex = b.find('extrainfo')
-    if prodIndex != -1:
-        if versionIndex != -1:
-            product = b[prodIndex+9:versionIndex].strip()
+    banner = b.split()
+    firstword = banner[0]
+    lastword = banner[-1]
+    for word in banner:
+        if word.endswith(':'):
+            if word is firstword:
+                print(word.capitalize(), end=" ")
+            else:
+                print(f'\n{word.capitalize()}', end=" ")
+        elif word is lastword:
+            print(word)
+            print()
         else:
-            product = b[prodIndex+9:extraIndex].strip()
-    else:
-        product = 'Unknown'
-    if versionIndex != -1:
-        version = b[versionIndex+9:extraIndex].strip()
-    else:
-        version = 'Unknown'
-    return product, version
+            print(word, end=" ")
+            
 
 def get_port_details(dict):
     port = dict['port']
     protocol = dict['protocol']
     service = dict['service']
     banner = dict['banner']
-    product, version = split_banner(banner)
-    max_len = len(product)
-    print(colored(port.ljust(6), 'blue', attrs=['bold']), end='')
-    print(protocol.ljust(8), service.ljust(12), product.ljust(20), version.ljust(max_len+2))
-
+    print(colored(f'[*] {port}', 'blue', attrs=['bold']), end=" ")
+    print(protocol, end=" ")
+    print(service)
+    if show_port_details:
+        try:
+            split_banner(banner)
+        except:
+            print("Product and version unknown")
+            print()
+    
 def get_hostnames(ip):
     for host in ips[ip]:
         print(colored(host, "green"))
@@ -118,9 +130,9 @@ def print_dict():
     if not quiet:
         print(colored("Use this section to generate tables of".center(60, " "), "grey", "on_yellow"))
         print(colored("ports and services enumerated during testing".center(60, " "), "grey", "on_yellow"))
-    for ipaddr in sorted(listening.keys()):
         print()
-        print(colored(f"{ipaddr}", "yellow", attrs=['bold']))
+    for ipaddr in sorted(listening.keys()):
+        print(colored(f"[+] {ipaddr}", "yellow", attrs=['bold']))
         print()
         print(colored("---Hostnames---", "magenta"))
         get_hostnames(ipaddr)
