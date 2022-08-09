@@ -17,7 +17,7 @@ python3 -m pip install -r requirements.txt
 ## Method 2
 
 ```bash
-pip3 install argparse, termcolor, python-libnmap
+pip3 install argparse termcolor python-libnmap
 ```
 
 # Usage

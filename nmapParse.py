@@ -114,7 +114,7 @@ class DisplayAll(object):
         """Prints a welcome banner."""
         print("-" * 60)
         print("Simple Nmap-Parser".center(60, " "))
-        print("Version 0.1.0".center(60, " "))
+        print("Version 0.2.0".center(60, " "))
         print("Tom Fieber (@tomfieber)".center(60, " "))
         print("-" * 60)
 
@@ -299,5 +299,3 @@ if __name__ == '__main__':
         display.greeting()
     display.print_dict(ports)
     display.count_open_ports(port_count)
-    display.print_ips(ips)
-    display.print_hosts(ips)
