@@ -299,3 +299,5 @@ if __name__ == '__main__':
         display.greeting()
     display.print_dict(ports)
     display.count_open_ports(port_count)
+    display.print_ips(ips)
+    display.print_hosts(ips)
