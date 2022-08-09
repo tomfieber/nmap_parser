@@ -237,6 +237,36 @@ class DisplayAll(object):
         for k in sorted(pc.keys(), key=int):
             print(f"{k} : {pc[k]}")
 
+    def print_ips(self, ip_dict):
+        """Prints out the IPs that are listed as UP.
+        
+        Args:
+            ip_dict: The dictionary containing the IP addresses as keys.
+
+        Returns:
+            Nothing
+        """
+        print()
+        self.header('List of IPs That Are "UP"')
+        for ip in ip_dict.keys():
+            print(ip)
+
+    def print_hosts(self, ip_dict):
+        """Prints out the full list of enumerated hosts.
+        
+        Args:
+            ip_dict: The dictionary containing the IP addresses as keys.
+
+        Returns:
+            Nothing, but prints out all the enumerated hosts across all IPS.
+        """
+        print()
+        self.header('List of All Hosts')
+        for ip in ip_dict.keys():
+            for host in ip_dict[ip]:
+                if host != '[-] No Hostname':
+                    print(host)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -269,3 +299,5 @@ if __name__ == '__main__':
         display.greeting()
     display.print_dict(ports)
     display.count_open_ports(port_count)
+    display.print_ips(ips)
+    display.print_hosts(ips)
