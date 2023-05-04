@@ -27,6 +27,12 @@ Author:
 import argparse
 from libnmap.parser import NmapParser
 from termcolor import colored
+from docx import Document
+from Modules.export import exportCsv
+from Modules.generateAppendix import AppendixGenerator
+from Modules.keyFunctions import split_banner
+from Modules.parseDehashed import ParseDehashed
+import os
 
 
 class NParse(object):
@@ -47,7 +53,7 @@ class NParse(object):
         """
         return state == "open"
 
-    def populate_dictionaries(self, ips, pd, pc):
+    def populate_dictionaries(self, ips, pd, pc, srvc):
         """Parses data from the XML file and stores it in dictionaries for later use.
 
         Args:
@@ -64,7 +70,7 @@ class NParse(object):
             if host.hostnames:
                 hostname = host.hostnames[0]
             else:
-                hostname = "[-] No Hostname"
+                hostname = ''
             if ip not in ips.keys():
                 ips[ip] = [hostname]
             else:
@@ -76,6 +82,10 @@ class NParse(object):
                 svcDetails = service.get_dict()
                 svcPort = svcDetails['port']
                 svcState = svcDetails['state']
+                svcName = svcDetails['service']
+                svcProtocol = svcDetails['protocol']
+                banner = svcDetails['banner']
+                svcProduct, svcVersion = split_banner(banner)
 
                 port_is_open = self.check_open(svcState)
 
@@ -83,9 +93,9 @@ class NParse(object):
 
                     # Get a count of all ports across hosts
                     if svcPort not in pc.keys():
-                        pc[svcPort] = 1
+                        pc[svcPort] = {'protocol': svcProtocol, 'count': 1}
                     else:
-                        pc[svcPort] += 1
+                        pc[svcPort]['count'] += 1
 
                     # Create the list of listening ports
                     if not verbose:
@@ -100,6 +110,12 @@ class NParse(object):
                             pd[ip] = [svcDetails]
                         else:
                             pd[ip].append(svcDetails)
+
+                    details = (ip, svcPort, svcProtocol, svcProduct, svcVersion)
+                    if svcName not in srvc.keys():
+                        srvc[svcName] = {'details': [details]}
+                    elif svcName in srvc.keys() and details not in srvc[svcName]['details']:
+                        srvc[svcName]['details'].append(details)
 
 
 class DisplayAll(object):
@@ -142,7 +158,7 @@ class DisplayAll(object):
             else:
                 print(word, end=" ")
 
-    def get_port_details(self, dict):
+    def get_port_details(self, dict, file):
         """Gets the port details from the nmap results for each port.
 
         Args:
@@ -155,9 +171,9 @@ class DisplayAll(object):
         protocol = dict['protocol']
         service = dict['service']
         banner = dict['banner']
-        print(colored(f'[*] {port}', 'blue', attrs=['bold']), end=" ")
-        print(protocol, end=" ")
-        print(service)
+        file.write(f"[*] {port} ")
+        file.write(f"{protocol} ")
+        file.write(f"{service}\n")
         if show_port_details:
             try:
                 self.split_banner(banner)
@@ -174,8 +190,11 @@ class DisplayAll(object):
         Returns:
             Nothing
         """
+        hosts = []
         for host in ips[ip]:
-            print(colored(host, "green"))
+            if host != "[-] No Hostname":
+                hosts.append(host)
+        return hosts
 
     def table_section_banner(self):
         """Prints the table section banner."""
@@ -206,20 +225,26 @@ class DisplayAll(object):
         Returns:
             Nothing
         """
-        if not quiet:
-            self.table_section_banner()
-        else:
-            print()
-        for ipaddr in sorted(d.keys()):
-            print(colored(f"[+] {ipaddr}", "yellow", attrs=['bold']))
-            print()
-            self.header("Hostnames")
-            self.get_hostnames(ipaddr)
-            print()
-            self.header("Open Ports")
-            for i in range(len(d[ipaddr])):
-                self.get_port_details(d[ipaddr][i])
-            print()
+        if not os.path.exists("./output/"):
+            os.mkdir("./output/")
+
+        with open('./output/hosts.txt', 'w') as hosts_file:
+            for ipaddr in sorted(d.keys()):
+                hosts_file.write("="*20 + "\n")
+                hosts_file.write(f"[+] {ipaddr}\n")
+                hosts_file.write("\n")
+                hosts_file.write("---Hostnames---\n")
+                hosts = self.get_hostnames(ipaddr)
+                if len(hosts) > 0:
+                    for host in hosts:
+                        hosts_file.write(host + '\n')
+                else:
+                    hosts_file.write("There are no hostnames\n")
+                hosts_file.write("\n")
+                hosts_file.write("---Open Ports---\n")
+                for i in range(len(d[ipaddr])):
+                    self.get_port_details(d[ipaddr][i], hosts_file)
+                hosts_file.write('\n')
 
     def count_open_ports(self, pc):
         """Counts the total number of open ports across all hosts.
@@ -264,8 +289,20 @@ class DisplayAll(object):
         self.header('List of All Hosts')
         for ip in ip_dict.keys():
             for host in ip_dict[ip]:
-                if host != '[-] No Hostname':
+                if host != '':
                     print(host)
+
+    def print_all_services(self, services_dict):
+        if not os.path.exists("./output/"):
+            os.mkdir("./output/")
+        with open('./output/all-services.txt', 'w') as services:
+            services.write("---List of All Hosts by Service---\n\n")
+            for svc in services_dict.keys():
+                services.write(f"=== Service: {svc} ===\n")
+                for detail in services_dict[svc]['details']:
+                    ip, port, protocol = detail[0], detail[1], detail[2]
+                    services.write(f"{ip}:{port}/{protocol}\n")
+                services.write("\n\n")
 
 
 if __name__ == '__main__':
@@ -279,25 +316,54 @@ if __name__ == '__main__':
                         help='List all ports with duplicates')
     parser.add_argument('-p', '--ports', dest='ports',
                         action='store_true', help='Show detailed port info')
+    parser.add_argument('-d', '--dehashed', dest='dehashed',
+                        nargs='+', help='The dehashed JSON file(s) to parse')
     options = parser.parse_args()
 
     files = options.files
     quiet = options.quiet
     verbose = options.verbose
     show_port_details = options.ports
+    dehashed_files = options.dehashed
+
+    base_dir = os.path.dirname(__file__)
+    template_file = base_dir + "/Template/appendix.docx"
 
     ips = {}
     ports = {}
     port_count = {}
+    services = {}
+    breached_creds = {}
+    cred_stuffing = []
+    password_spray = []
 
     for file in files:
         parsed = NParse(file, options)
-        parsed.populate_dictionaries(ips, ports, port_count)
+        parsed.populate_dictionaries(ips, ports, port_count, services)
 
+    if dehashed_files:
+        print("[+] Parsing Dehashed file(s)")
+        for dehashed_file in dehashed_files:
+            parsed_dehashed = ParseDehashed(
+                dehashed_file, options=options)
+            parsed_dehashed.parse_dehashed_json(
+                breached_creds, password_spray, cred_stuffing)
+
+    print(ips)
+    print(ports)
     display = DisplayAll(ips, ports, port_count)
     if not quiet:
         display.greeting()
+    # Output appendix
+    document = Document(template_file)
+    appendix = AppendixGenerator(options)
+    appendix.export_doc(breached_creds, ips, ports, document)
     display.print_dict(ports)
-    display.count_open_ports(port_count)
     display.print_ips(ips)
     display.print_hosts(ips)
+    print("[+] Writing listening services CSV file")
+    exportCsv(port_count)
+    print("[!] Done. Listening Services CSV written to ./output/listening-services.csv")
+    print("[+] Writing services file")
+    display.print_all_services(services)
+    print("[!] Done. Services file written to ./output/all-services.txt")
